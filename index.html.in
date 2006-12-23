@@ -1,0 +1,28 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- $Id: index.html.in 32 2006-12-18 13:13:40Z dhellmann $ -->
+<html>
+  <head>
+    <title>Proctor</title>
+  </head>
+
+  <body>
+    <h1>Proctor</h1>
+
+    <p>Proctor is a tool for running unit tests.  It enhances the
+    standard unittest module to provide the ability to find all tests
+    in a set of code, categorize them via tagging, and run some or all
+    of them.  Test output may be generated in a variety of formats to
+    support parsing by another tool or simple, nicely formatted,
+    reports for human review.</p>
+
+    <p><a
+    href="http://www.hellfly.net/~dhellmann/Proctor/Proctor-VERSION.tar.gz">Download</a></p>
+
+    <hr>
+    <address>Doug Hellmann</address>
+<!-- Created: Mon Dec 18 09:02:06 EST 2006 -->
+<!-- hhmts start -->
+Last modified: Mon Dec 18 09:04:03 EST 2006
+<!-- hhmts end -->
+  </body>
+</html>
