@@ -18,6 +18,9 @@
     <p><a
     href="http://www.hellfly.net/~dhellmann/Proctor/Proctor-VERSION.tar.gz">Download</a></p>
 
+    <p>For help with the command line interface, run <tt>procctorbatch
+        --help</tt>.</p>
+
     <hr>
     <address>Doug Hellmann</address>
 <!-- Created: Mon Dec 18 09:02:06 EST 2006 -->
