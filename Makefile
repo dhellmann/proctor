@@ -13,17 +13,12 @@ SVNHOME=$(shell svn info | grep "^URL" | cut -f2- -d:)
 PROJECT=Proctor
 VERSION=$(shell basename $(SVNHOME))
 RELEASE=$(PROJECT)-$(VERSION)
-DEST=homer:~/public_html/$(PROJECT)/
 
 package: setup.py index.html
 	python setup.py sdist --force-manifest
 
 %: %.in
 	cat $< | sed 's/VERSION/$(VERSION)/g' > $@
-
-push: package
-	scp index.html $(DEST)
-	scp dist/*.tar.gz $(DEST)
 
 tags:
 	find . -name '*.py' | etags -l auto --regex='/[ \t]*\def[ \t]+\([^ :(\t]+\)/\1/' -
