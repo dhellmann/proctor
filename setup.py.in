@@ -2,7 +2,7 @@
 #
 # $Id: setup.py 120 2003-04-23 12:18:54Z doughellmann $
 #
-# Time-stamp: <06/12/31 11:01:58 dhellmann>
+# Time-stamp: <06/12/31 12:03:26 dhellmann>
 #
 # Copyright 2001 Doug Hellmann.
 #
@@ -62,6 +62,7 @@ setup (
     author_email = 'doug.hellmann@gmail.com',
 
     url = 'http://www.doughellmann.com/projects/Proctor/',
+    download_url = 'http://www.doughellmann.com/downloads/Proctor-VERSION.tar.gz',
 
     classifiers = [ 'Development Status :: 5 - Production/Stable',
                     'License :: OSI Approved :: BSD License',
