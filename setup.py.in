@@ -2,7 +2,7 @@
 #
 # $Id: setup.py 120 2003-04-23 12:18:54Z doughellmann $
 #
-# Time-stamp: <06/12/23 18:16:11 dhellmann>
+# Time-stamp: <06/12/31 11:01:58 dhellmann>
 #
 # Copyright 2001 Doug Hellmann.
 #
@@ -61,12 +61,13 @@ setup (
     author = 'Doug Hellmann',
     author_email = 'doug.hellmann@gmail.com',
 
-    url = 'http://www.hellfly.net/~dhellmann/Proctor/',
+    url = 'http://www.doughellmann.com/projects/Proctor/',
 
-    classifiers = [ 'Development Status :: 4 - Beta',
+    classifiers = [ 'Development Status :: 5 - Production/Stable',
                     'License :: OSI Approved :: BSD License',
                     'Programming Language :: Python',
                     'Intended Audience :: Developers',
+                    'Environment :: Console',
                     ],
 
     platforms = ('Any',),
