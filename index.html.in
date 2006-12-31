@@ -15,8 +15,8 @@
     support parsing by another tool or simple, nicely formatted,
     reports for human review.</p>
 
-    <p><a
-    href="http://www.hellfly.net/~dhellmann/Proctor/Proctor-VERSION.tar.gz">Download</a></p>
+    <p>For new releases, see <a
+    href="http://www.doughellmann.com/projects/Proctor/">the project home page</a>.</p>
 
     <p>For help with the command line interface, run <tt>proctorbatch
         --help</tt>.</p>
