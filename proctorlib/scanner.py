@@ -61,7 +61,11 @@ class ModuleTree:
         self.name = name
         self.parent = parent
         self.data = {}
+        self.module = None
 
+        if parent:
+            parent.reload()
+            
         self.reload()
         
         trace.outof(outputLevel=self.TRACE_LEVEL)
@@ -75,7 +79,7 @@ class ModuleTree:
 
                 path_name = full_name.replace('.', '/')
                 directory, module_base = os.path.split(path_name)
-                
+
                 trace.write('find_module(%s, [%s])' % (module_base, directory),
                             outputLevel=self.TRACE_LEVEL)
 
@@ -88,8 +92,15 @@ class ModuleTree:
                                                                  )
                                 )
                 except KeyError:
+                    if self.parent and self.parent.module:
+                        trace.write('using parent search path')
+                        search_path = self.parent.module.__path__
+                    else:
+                        trace.write('using directory from filename for search path')
+                        search_path = [directory]
+                    trace.write('Searching for %s in %s' % (module_base, search_path))
                     fp, pathname, description = imp.find_module(module_base,
-                                                                [directory])
+                                                                search_path)
 
                     trace.writeVar(module_base=module_base,
                                    fp=fp,
@@ -97,16 +108,27 @@ class ModuleTree:
                                    description=description,
                                    outputLevel=self.TRACE_LEVEL)
 
-
-
                     try:
-                        load_module_args = (module_base, fp, pathname, description)
-                        trace.write('load_module%s' % str(load_module_args), outputLevel=self.TRACE_LEVEL)
+                        # HACK ALERT:
+                        # Add a fake prefix to the module so we effectivly import it
+                        # into our own namespace.  That prevents errors if the
+                        # test module wants to import other modules from the
+                        # same package which we might not have already imported,
+                        # since the sys.modules lookup will not return the module
+                        # we imported for testing purposes.
+                        load_module_args = ('test: %s' % full_name, fp, pathname, description)
+                        trace.write('load_module%s' % str(load_module_args),
+                                    outputLevel=self.TRACE_LEVEL)
                         try:
-                            module = apply(imp.load_module, load_module_args)
+                            module = imp.load_module(*load_module_args)
                         except Exception, msg:
+                            trace.write('ImportError(%s)' % str(msg))
+                            trace.showTraceback()
                             raise ImportError(str(msg))
+                        else:
+                            trace.write('Imported %s (%s)' % (str(module), id(module)))
 
+                        trace.write('Updating cache')
                         _module_cache[(module_base, directory)] = module
                     finally:
                         if fp:
@@ -148,6 +170,8 @@ class ModuleTree:
         return module
 
     def reload(self):
+        if self.module:
+            return
 ##        if hasattr(self, 'module') and self.module:
 ##            #reload(self.getFullModule())
 ##            reload(self.module)
@@ -162,12 +186,14 @@ class ModuleTree:
         trace.into('ModuleTree', '_ignoreModule', outputLevel=self.TRACE_LEVEL)
 
         if not module:
-            return trace.outof(1, outputLevel=self.TRACE_LEVEL)
+            trace.write('No module')
+            return trace.outof(True, outputLevel=self.TRACE_LEVEL)
         
         if hasattr(module, '__proctor_ignore_module__') and module.__proctor_ignore_module__:
-            return trace.outof(1, outputLevel=self.TRACE_LEVEL)
+            trace.write('Found ignore flag')
+            return trace.outof(True, outputLevel=self.TRACE_LEVEL)
 
-        return trace.outof(0, outputLevel=self.TRACE_LEVEL)
+        return trace.outof(False, outputLevel=self.TRACE_LEVEL)
 
     def _addTestsToSuite(self, tests=()):
         """Callback called by the TestLoader as it finds sets of tests.
@@ -371,8 +397,8 @@ class ModuleScanner:
 
     TRACE_LEVEL=2
 
-    SKIP_NAMES = ('CVS', 'setup.py', '__init__.py')
-    SKIP_FILE_EXTENSIONS = ('pyc', 'pyo', 'pyd', 'html', 'txt', 'py~')
+    SKIP_NAMES = ('.svn', 'CVS', 'setup.py', '__init__.py')
+    SKIP_FILE_EXTENSIONS = ('pyc', 'pyo', 'pyd', 'html', 'txt', 'py~', '.so', '.dll')
 
     def __init__(self, verboseLevel=0):
         trace.into('ModuleScanner', '__init__', outputLevel=self.TRACE_LEVEL)

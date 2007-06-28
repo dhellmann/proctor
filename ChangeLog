@@ -1,0 +1,14 @@
+2007-06-28  Doug Hellmann  <doug.hellmann@gmail.com>
+
+	* proctorlib/scanner.py (ModuleTree.reload): If we already have a
+	module, do not do anything.
+	(ModuleTree.__init__): Load the parent recursively when we are
+	instantiated.
+
+	* proctorlib/scanner.py (ModuleTree._importModule): Add a fake
+	prefix to the module so we effectivly import it into our own
+	namespace.  That prevents errors if the test module wants to
+	import other modules from the same package which we might not have
+	already imported, since the sys.modules lookup will not return the
+	module we imported for testing purposes.
+
