@@ -29,27 +29,7 @@
 
 """
 
-__rcs_info__ = {
-    #
-    #  Creation Information
-    #
-    'module_name'  : '$RCSfile$',
-    'rcs_id'       : '$Id$',
-    'creator'      : 'Doug Hellmann <doug@hellfly.net>',
-    'project'      : 'Proctor',
-    'created'      : 'Sun, 21-Jul-2002 10:30:37 EDT',
-
-    #
-    #  Current Information
-    #
-    'author'       : '$Author$',
-    'version'      : '$Revision$',
-    'date'         : '$Date$',
-}
-try:
-    __version__ = __rcs_info__['version'].split(' ')[1]
-except:
-    __version__ = '0.0'
+__module_id__ = '$Id$'
 
 #
 # Import system modules

@@ -29,49 +29,41 @@
 
 """
 
-__rcs_info__ = {
-    #
-    #  Creation Information
-    #
-    'module_name'  : '$RCSfile$',
-    'rcs_id'       : '$Id$',
-    'creator'      : 'Doug Hellmann <doug@hellfly.net>',
-    'project'      : 'Proctor',
-    'created'      : 'Sun, 16-Jun-2002 10:51:33 EDT',
-
-    #
-    #  Current Information
-    #
-    'author'       : '$Author$',
-    'version'      : '$Revision$',
-    'date'         : '$Date$',
-}
-try:
-    __version__ = __rcs_info__['version'].split(' ')[1]
-except:
-    __version__ = '0.0'
+__module_id__ = '$Id$'
 
 #
 # Import system modules
 #
-import string
 try:
     from cStringIO import StringIO
 except:
     from StringIO import StringIO
+import gc
 import sys
 import time
 import traceback
+import types
 import unittest
+
+#
+# Preserve stdout in case some test overrides it
+#
+STDOUT=sys.stdout
 
 #
 # Import Local modules
 #
 from proctorlib.trace import trace
+from proctorlib import scanner
 
 #
 # Module
 #
+def _some_str(value):
+    try:
+        return str(value)
+    except:
+        return '<unprintable %s object>' % type(value).__name__
 
 class ProctorTestResult(unittest.TestResult):
 
@@ -100,15 +92,17 @@ class ProctorTestResult(unittest.TestResult):
         
         elapsed_time = float(self.end_time - self.start_time)
         
-        print
-        print "Ran %d test%s in %.3fs" % (run,
-                                          run == 1 and "" or "s",
-                                          elapsed_time)
-        print
+        STDOUT.write('\n')
+        STDOUT.write("Ran %d test%s in %.3fs\n" % (run,
+                                                   run == 1 and "" or "s",
+                                                   elapsed_time))
+        STDOUT.write('\n')
 
         if not self.wasSuccessful():
 
-            failed, errored = map(len, (self.failures, self.errors))
+            #failed, errored = map(len, (self.failures, self.errors))
+            failed = len(self.failures)
+            errored = len(self.errors)
 
             if failed:
                 failures = "failures=%d" % failed
@@ -123,10 +117,10 @@ class ProctorTestResult(unittest.TestResult):
             else:
                 errors = ''
 
-            print "FAILED (%s%s)" % (failures, errors)
+            STDOUT.write("FAILED (%s%s)\n" % (failures, errors))
 
         else:
-            print "OK"
+            STDOUT.write("OK\n")
         return
 
 
@@ -135,44 +129,177 @@ class ProctorTestResult(unittest.TestResult):
 
         unittest.TestResult.startTest(self, test)
 
-        desc = test.shortDescription() or str(test)
+        desc = test.id()
         progress_line = '%3d/%3d %s ...' % (self.num_tests_run,
                                             self.num_tests,
                                             desc,
                                             )
-        print progress_line,
+        STDOUT.write(progress_line)
+        STDOUT.flush()
 
         self.num_tests_run += 1
         
         trace.outof()
         return
 
+    def _showGarbage(self):
+        """
+        show us what's the garbage about
+        """
+        if gc.isenabled():
+            #
+            # Save the current settings
+            #
+            flags = gc.get_debug()
+            th = gc.get_threshold()
+            #sys.stderr.write("GC: Thresholds = %s\n" % str(th))
+            
+            try:
+                #
+                # Perform aggressive collection
+                #
+                gc.set_debug(gc.DEBUG_LEAK)
+                gc.set_threshold(1, 1, 1)
+                # force collection
+                sys.stderr.write("GC: Collecting...\n")
+                for i in range(6):
+                    gc.collect()
+
+                #
+                # Remember what is garbage now
+                #
+                garbage = gc.garbage
+            finally:
+                gc.set_debug(flags)
+                gc.set_threshold(*th)
+
+            #
+            # Report on current garbage
+            #
+            if not garbage:
+                sys.stderr.write('GC: no garbage\n')
+            else:
+                sys.stderr.write("GC: Garbage objects:\n")
+                for x in garbage:
+                    for c in [ scanner.ModuleTree,
+                               ]:
+                        if isinstance(x, c):
+                            # ignore
+                            continue
+
+                    s = str(x)
+                    #if len(s) > 80: s = s[:80]
+                    sys.stderr.write(str(type(x)))
+                    sys.stderr.write("\n  %s\n" % s)
+                
+            # collect again without DEBUG_LEAK
+            gc.collect()
+        #else:
+        #    print 'GC: disabled'
+        return
+
     def stopTest(self, test):
         trace.into('ProctorTestResult', 'stopTest', test=test)
-
+        
         unittest.TestResult.stopTest(self, test)
+
+        try:
+            self._showGarbage()
+        except Exception, err:
+            print 'GC ERROR: ', err
         
         trace.outof()
         return
 
-    def _exc_info_to_string(self, err):
-        """Converts a sys.exc_info()-style tuple of values into a string."""
-        return string.join(apply(traceback.format_exception, err), '')
+    def _format_exception_only(self, etype, value, *args):
+        """Format the exception part of a traceback as the output of grep.
+
+        The arguments are the exception type and value such as given by
+        sys.last_type and sys.last_value. The return value is a list of
+        strings, each ending in a newline.  Normally, the list contains a
+        single string; however, for SyntaxError exceptions, it contains
+        several lines that (when printed) display detailed information
+        about where the syntax error occurred.  The message indicating
+        which exception occurred is the always last string in the list.
+        """
+        list = []
+        if type(etype) == types.ClassType:
+            stype = etype.__name__
+        else:
+            stype = etype
+
+        if value is None:
+            list.append('%s\n' % str(stype))
+        else:
+            if etype is SyntaxError:
+                try:
+                    msg, (filename, lineno, offset, line) = value
+                except:
+                    pass
+                else:
+                    if not filename: filename = "<string>"
+                    if line is not None:
+                        i = 0
+                        while i < len(line) and line[i].isspace():
+                            i = i+1
+                        list.append('%s:%d:%s\n' % (filename, lineno, line.strip()))
+                        if offset is not None:
+                            s = '    '
+                            for c in line[i:offset-1]:
+                                if c.isspace():
+                                    s = s + c
+                                else:
+                                    s = s + ' '
+                            list.append('%s^\n' % s)
+                        value = msg
+            s = _some_str(value)
+            if s:
+                list.append('%s: %s\n' % (str(stype), s))
+            else:
+                list.append('%s\n' % str(stype))
+
+        return list
+
+    def _format_list(self, extracted_list):
+        """Format a list of traceback entry tuples for printing.
+
+        Given a list of tuples as returned by extract_tb() or
+        extract_stack(), return a list of strings ready for printing.
+        Each string in the resulting list corresponds to the item with the
+        same index in the argument list.  Each string ends in a newline;
+        the strings may contain internal newlines as well, for those items
+        whose source text line is not None.
+        """
+        list = []
+        for filename, lineno, name, line in extracted_list:
+            item = '%s:%d:%s:%s\n' % (filename,lineno,line.strip(),name)
+            list.append(item)
+        return list
+
+    #def _exc_info_to_string(self, err):
+    #    """Converts a sys.exc_info()-style tuple of values into a string."""
+    #    #err_class, err_inst, tb = err
+    #    #formated_exception = self._format_list(traceback.extract_tb(tb, None))
+    #    formated_exception = traceback.format_exception(*err)
+    #    return ''.join(formated_exception)
     
     def addError(self, test, err):
         trace.into('TestResult', 'addError', test=test, err=err)
         unittest.TestResult.addError(self, test, err)
-        print 'ERROR'
-        print self._exc_info_to_string(err)
+        STDOUT.write('ERROR in %s\n' % test.id())
+        STDOUT.write(self._exc_info_to_string(err, test))
+        STDOUT.write('\n')
+        STDOUT.flush()
         trace.outof()
         return
 
     def addFailure(self, test, err):
         trace.into('TestResult', 'addFailure', test=test, err=err)
         unittest.TestResult.addFailure(self, test, err)
-        print 'FAIL'
-        print self._exc_info_to_string(err)
-        print
+        STDOUT.write('FAIL in %s\n' % test.id())
+        STDOUT.write(self._exc_info_to_string(err, test))
+        STDOUT.write('\n')
+        STDOUT.flush()
         trace.outof()
         return
 
@@ -180,7 +307,8 @@ class ProctorTestResult(unittest.TestResult):
         trace.into('TestResult', 'addSuccess', test=test)
 
         unittest.TestResult.addSuccess(self, test)
-        print 'ok'
+        STDOUT.write('ok\n')
+        STDOUT.flush()
         
         trace.outof()
         return
@@ -206,8 +334,8 @@ class ProctorParsableTestResult(ProctorTestResult):
         return
 
     def _outputSeparator(self, message):
-        print '%s %s' % (self.PREFIX, message)
-        print
+        STDOUT.write('%s %s\n\n' % (self.PREFIX, message))
+        STDOUT.flush()
         return
     
     def startTest(self, test):
@@ -215,7 +343,8 @@ class ProctorParsableTestResult(ProctorTestResult):
         
         unittest.TestResult.startTest(self, test)
 
-        print test.id()
+        STDOUT.write('%s\n' % test.id())
+        STDOUT.flush()
 
         self.num_tests_run += 1
         
@@ -232,8 +361,11 @@ class ProctorParsableTestResult(ProctorTestResult):
         progress_line = '%3d/%3d' % (self.num_tests_run,
                                      self.num_tests,
                                      )
-        print progress_line
+        STDOUT.write(progress_line)
+        STDOUT.write('\n')
+        
         self._outputSeparator('End progress')
+        STDOUT.flush()
 
         return
 
@@ -241,27 +373,31 @@ class ProctorParsableTestResult(ProctorTestResult):
         unittest.TestResult.addSuccess(self, test)
 
         self._outputSeparator('Start results')
-        print 'ok'
+        STDOUT.write('ok\n')
         self._outputSeparator('End results')
+        STDOUT.flush()
         return
     
     def addError(self, test, err):
         unittest.TestResult.addError(self, test, err)
-        print self._exc_info_to_string(err)
+        STDOUT.write(self._exc_info_to_string(err, test))
+        STDOUT.write('\n')
 
         self._outputSeparator('Start results')
-        print 'ERROR'
+        STDOUT.write('ERROR in %s\n' % test.id())
         self._outputSeparator('End results')
+        STDOUT.flush()
         return
 
     def addFailure(self, test, err):
         unittest.TestResult.addFailure(self, test, err)
 
-        print self._exc_info_to_string(err)
+        STDOUT.write(self._exc_info_to_string(err, test))
 
         self._outputSeparator('Start results')
-        print 'FAIL'
+        STDOUT.write('FAIL in %s\n' % test.id())
         self._outputSeparator('End results')
+        STDOUT.flush()
         return
 
     def showSummary(self):
@@ -271,21 +407,22 @@ class ProctorParsableTestResult(ProctorTestResult):
         num_failures = len(self.failures)
         num_errors = len(self.errors)
         
-        print 'Failures: %d' % num_failures
-        print 'Errors: %d' % num_errors
+        STDOUT.write('Failures: %d\n' % num_failures)
+        STDOUT.write('Errors: %d\n' % num_errors)
         successes = (self.num_tests - (num_failures + num_errors))
-        print 'Successes: %d' % successes
-        print 'Tests: %d' % self.num_tests_run
-        print 'Elapsed time (sec): %.3f' % elapsed_time
+        STDOUT.write('Successes: %d\n' % successes)
+        STDOUT.write('Tests: %d\n' % self.num_tests_run)
+        STDOUT.write('Elapsed time (sec): %.3f\n' % elapsed_time)
 
         if num_failures or num_errors:
             status = 'FAILED'
         else:
             status = 'OK'
 
-        print 'Status: %s' % status
+        STDOUT.write('Status: %s\n' % status)
         
         self._outputSeparator('End summary')
+        STDOUT.flush()
         return
     
     

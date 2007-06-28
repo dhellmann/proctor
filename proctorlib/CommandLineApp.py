@@ -41,25 +41,7 @@
 
 """
 
-__rcs_info__ = {
-    #
-    #  Creation Information
-    #
-    'module_name':'$RCSfile$',
-    'creator':'Doug Hellmann <doug@hellfly.net>',
-    'project':'Open Source',
-    'created':'Tue, 23-May-2000 07:11:43 EDT',
-    #
-    #  Current Information
-    #
-    'author':'$Author$',
-    'version':'$Revision$',
-    'date':'$Date$',
-    }
-try:
-    __version__ = __rcs_info__['version'].split(' ')[1]
-except:
-    __version__ = '0.0'
+__module_id__ = '$Id$'
 
 #
 # Import system modules

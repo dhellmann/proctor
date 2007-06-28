@@ -29,31 +29,12 @@
 
 """
 
-__rcs_info__ = {
-    #
-    #  Creation Information
-    #
-    'module_name'  : '$RCSfile$',
-    'rcs_id'       : '$Id$',
-    'creator'      : 'Doug Hellmann <doug@hellfly.net>',
-    'project'      : 'Proctor',
-    'created'      : 'Wed, 19-Jun-2002 08:39:31 EDT',
-
-    #
-    #  Current Information
-    #
-    'author'       : '$Author$',
-    'version'      : '$Revision$',
-    'date'         : '$Date$',
-}
-try:
-    __version__ = __rcs_info__['version'].split(' ')[1]
-except:
-    __version__ = '0.0'
+__module_id__ = '$Id$'
 
 #
 # Import system modules
 #
+import gc
 import string
 import sys
 import time
@@ -65,6 +46,7 @@ import unittest
 # Import Local modules
 #
 import proctorlib
+import proctorlib.coverage
 from proctorlib.trace import trace
 
 #
@@ -83,31 +65,36 @@ class proctorbatch(proctorlib.CommandLineApp):
     
     shortArgumentsDescription = "[<directory name> ...]"
 
-    list_mode = 0
-    list_categories_mode = 0
-    run_mode = 1
-    parsable_mode = 0
-    coverage_filename = None
-    coverage = 1
-    interleaved = 0
+    list_mode = False
+    list_categories_mode = False
+    run_mode = True
+    parsable_mode = False
+    coverage_filename = proctorlib.coverage.coverage.cache_default
+    coverage = True
+    coverage_exclude_patterns = []
+    interleaved = False
     category = 'All'
+
+    def appInit(self):
+        gc.enable()
+        return
     
     def optionHandler_list(self):
         """List tests.
         """
-        self.list_mode = 1
+        self.list_mode = True
         return
 
     def optionHandler_list_categories(self):
         """List test categories.
         """
-        self.list_categories_mode = 1
+        self.list_categories_mode = True
         return
 
     def optionHandler_no_run(self):
         """Do not run the tests
         """
-        self.run_mode = 0
+        self.run_mode = False
         return
 
     def optionHandler_category(self, categoryName):
@@ -124,14 +111,14 @@ class proctorbatch(proctorlib.CommandLineApp):
         """Interleave error and failure messages
         with the test list.
         """
-        self.interleaved = 1
+        self.interleaved = True
         return
 
     def optionHandler_parsable(self):
         """Format output to make it easier to parse.
         """
-        self.interleaved = 1
-        self.parsable_mode = 1
+        self.interleaved = True
+        self.parsable_mode = True
         return
 
     def optionHandler_coverage_file(self, filename):
@@ -143,7 +130,21 @@ class proctorbatch(proctorlib.CommandLineApp):
     def optionHandler_no_coverage(self):
         """Disable coverage analysis.
         """
-        self.coverage = 0
+        self.coverage = False
+        return
+
+    def optionHandler_coverage_exclude(self, pattern):
+        """Add a line exclude pattern
+        (can be a regular expression).
+        """
+        self.statusMessage('Excluding "%s" from coverage analysis' % pattern)
+        self.coverage_exclude_patterns.append(pattern)
+        return
+
+    def optionHandler_no_gc(self):
+        """Disable garbage collection and leak reporting.
+        """
+        gc.disable()
         return
 
     def showNode(self, node, data=None):
@@ -259,33 +260,37 @@ class proctorbatch(proctorlib.CommandLineApp):
         # If they asked for a list of test categories,
         # print that here.
         #
-        if self.list_categories_mode:
+        elif self.list_categories_mode:
             success = self.listCategories(module_tree)
 
         #
         # If they asked to have tests run, do that
         # last.
         #
-        if self.run_mode:
+        elif self.run_mode:
             
             #
             # Possibly override the coverage filename
             #
             if self.coverage_filename:
+                self.statusMessage('Writing coverage output to %s' % self.coverage_filename)
                 import os
                 os.environ['COVERAGE_FILE'] = self.coverage_filename
                 
             if self.coverage:
                 #
-                # Wait to do the import of this module until right here,
-                # in case the filename was specified via the command line.
-                # An API to the coverage module would be nice...
+                # Clean up in case we have previous coverage data
                 #
-                from proctorlib import coverage
+                proctorlib.coverage.erase()
+                #
+                # Add exclude patterns
+                #
+                for pattern in self.coverage_exclude_patterns:
+                    proctorlib.coverage.exclude(pattern)
                 #
                 # Start code coverage counter
                 #
-                coverage.start()
+                proctorlib.coverage.start()
                 
             #
             # Get the module tree.  This needs to be done *after*
@@ -303,8 +308,8 @@ class proctorbatch(proctorlib.CommandLineApp):
                 #
                 # Stop coverage counter and save its results
                 #
-                coverage.stop()
-                coverage.the_coverage.save()
+                proctorlib.coverage.stop()
+                proctorlib.coverage.the_coverage.save()
                 
             #
             # Report our success/failure
