@@ -1,3 +1,9 @@
+2007-07-26  Doug Hellmann  <doug.hellmann@gmail.com>
+
+	* proctorlib/CommandLineApp.py (CommandLineApp): Convert string
+	exceptions to classes.  Only show the base name of the command
+	when printing help, instead of the full path.
+
 2007-06-28  Doug Hellmann  <doug.hellmann@gmail.com>
 
 	* proctorlib/scanner.py (ModuleTree.reload): If we already have a

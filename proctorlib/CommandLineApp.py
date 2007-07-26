@@ -47,14 +47,15 @@ __module_id__ = '$Id$'
 # Import system modules
 #
 import getopt
+import os
 import pprint
 import sys
 import string
+import unittest
 
 #
 # Import Local modules
 #
-
 
 #
 # Module
@@ -83,10 +84,21 @@ class CommandLineApp:
     #
     # Exception names
     #
-    ReservedOptionName = 'Reserved option name'
-    HelpRequested='Help requested'
-    InvalidOptionValue='Invalid value for option'
-    InvalidArgument='Invalid argument to program'
+    class ReservedOptionName(Exception):
+        def __init__(self, optionName):
+            Exception.__init__(self, 'Reserved option name: %s' % optionName)
+            return
+
+    class HelpRequested(Exception):
+        def __init__(self, msg='Help requested'):
+            Exception.__init__(self, msg)
+            return
+
+    class InvalidOptionValue(Exception):
+        message='Invalid value for option'
+
+    class InvalidArgument(Exception):
+        message='Invalid argument to program'
 
     #
     # Globally useful configuration stuff.
@@ -99,7 +111,19 @@ class CommandLineApp:
 
     verboseLevel = 1
 
-    _app_version = '0.0' 
+    #
+    # split options that take parameters with this character
+    #
+    splitParamChar = ','
+
+    #
+    # If true, always ends run() with sys.exit()
+    #
+    force_exit = 1
+
+    _app_name = os.path.basename(sys.argv[0])
+
+    _app_version = None
 
     def __init__(self, commandLineOptions=sys.argv[1:]):
         "Initialize CommandLineApp."
@@ -159,7 +183,10 @@ class CommandLineApp:
                 longOptionList)
         except getopt.error, message:
             self.showHelp(message)
-            raise getopt.error, message
+            if self.force_exit:
+                sys.exit(1)
+            else:
+                raise self.HelpRequested('Error processing command line options.')
         return
 
     def constructOptionInfo(self, methodName, methodRef):
@@ -203,7 +230,7 @@ class CommandLineApp:
                type(component).__name__ == 'function':
                 optionInfo = self.constructOptionInfo(componentName, component)
                 if optionInfo[0] == 'h':
-                    raise CommandLineApp.ReservedOptionName, 'h'
+                    raise CommandLineApp.ReservedOptionName('h')
                 self.allOptions[ optionInfo[0] ] = optionInfo
                 self.allMethods[ componentName ] = optionInfo
 
@@ -238,10 +265,10 @@ class CommandLineApp:
         for option in self.parsedOptions:
             if option[0] == '-h':
                 self.showHelp()
-                raise self.HelpRequested, 'Help message was printed.'
+                raise self.HelpRequested()
             if option[0] == '--help':
                 self.showVerboseHelp()
-                raise self.HelpRequested, 'Help message was printed.'
+                raise self.HelpRequested()
         
     def main(self, *args):
         """Main body of your application.
@@ -286,8 +313,11 @@ class CommandLineApp:
                 method = self.methodReferenceFromName(methName)
                 optInfo = self.infoForOption(option)
                 if optInfo[1] == self.optTakesParam:
-                    optArg = string.split(optValue, ',')
-                    if len(optArg) <= 1:
+                    if self.splitParamChar:
+                        optArg = string.split(optValue, self.splitParamChar)
+                        if len(optArg) <= 1:
+                            optArg = optValue
+                    else:
                         optArg = optValue
                     method(self, optArg)
                 else:
@@ -300,7 +330,36 @@ class CommandLineApp:
                 sys.stderr.write('Cancelled by user.\n')
                 pass
             exit_code = 1
-        return exit_code
+        except SystemExit, msg:
+            exit_code = msg.args[0]
+        except self.HelpRequested:
+            exit_code = 0
+            if not self.force_exit:
+                raise
+        except:
+            exit_code = self.handleArgumentException()
+            
+        if self.force_exit:
+            sys.exit(exit_code)
+        else:
+            return exit_code
+            
+    debug = False
+    def optionHandler_debug(self):
+        "Turn on debug mode to see tracebacks."
+        self.debug = True
+        return
+
+    def handleArgumentException(self):
+        import sys
+        sys.stderr.write('ERROR: ')
+        sys.stderr.write(str(sys.exc_value))
+        sys.stderr.write('\n')
+        sys.stderr.write('Use -h or --help for more details.\n')
+        if self.debug:
+            sys.stderr.write('\n')
+            raise
+        return 1
     
     def getSimpleSyntaxHelpString(self):    
         """Return syntax statement.
@@ -322,55 +381,76 @@ class CommandLineApp:
         longOptionArgs = []
         allOptionNames = self.allOptions.keys()
         allOptionNames.sort()
+
         #
-        # Sort out each option into the correct group.
+        # Print the name of the command and basic syntax.
         #
+        helpMsg = '%s%s [<options>] %s\n\n' % (helpMsg,
+                                               self._app_name,
+                                               self.shortArgumentsDescription)
+        
+        #
+        # Figure out which options are aliases
+        #
+        option_aliases = {}
+        reduced_options = []
         for option in allOptionNames:
             optName, optTakesValue, optLongOrShort, ignore, ignore = \
                  self.infoForOption(option)
             methodName = self.methodNameFromOption(option)
             method = self.methodReferenceFromName(methodName)
-            if optTakesValue == self.optTakesParam:
-                if optLongOrShort == self.optTypeLong:
-                    longOptionArgs.append(optName)
+            existing_aliases = option_aliases.get(method, [])
+            if not existing_aliases:
+                reduced_options.append(option)
+            existing_aliases.append(option)
+            option_aliases[method] = existing_aliases
+
+        grouped_options = [ x[1] for x in option_aliases.items() ]
+        grouped_options.sort()
+        
+        #
+        # Sort out each option into the correct group.
+        #
+        for option_set in grouped_options:
+            option_texts = []
+            first_option = option_set[0]
+
+            for option in option_set:
+                optName, optTakesValue, optLongOrShort, ignore, ignore = \
+                         self.infoForOption(option)
+
+                methodName = self.methodNameFromOption(option)
+
+                method = self.methodReferenceFromName(methodName)
+
+                
+                if optTakesValue == self.optTakesParam:
+                    valueName = method.func_code.co_varnames[1]
                 else:
-                    shortOptionArgs.append(optName)
-            else:
-                if optLongOrShort == self.optTypeLong:
-                    longOptionNoArgs.append(optName)
+                    valueName = ''
+                
+                if optTakesValue == self.optTakesParam:
+                    
+                    if optLongOrShort == self.optTypeLong:
+                        option_texts.append('--%s=%s' % (optName, valueName))
+                    else:
+                        option_texts.append('-%s %s' % (optName, valueName))
+                        
                 else:
-                    shortOptionNoArgs = shortOptionNoArgs + optName
+                    
+                    if optLongOrShort == self.optTypeLong:
+                        option_texts.append('--%s' % optName)
+                    else:
+                        option_texts.append('-%s' % optName)
+                        
+
+            
+            option_msg = ', '.join(option_texts)
+            helpMsg = '%s\t\t%s\n' % (helpMsg, option_msg)
+            
+            
         #
-        # Print the name of the command, and the short options
-        # which take no arguments.
-        #
-        helpMsg = '%s%s [-%s] ' % (helpMsg, sys.argv[0], shortOptionNoArgs)
-        #
-        # Print the short options which take arguments.
-        #
-        for option in shortOptionArgs:
-            methodName = self.methodNameFromOption(option)
-            method = self.methodReferenceFromName(methodName)
-            valueName = method.func_code.co_varnames[1]
-            helpMsg = '%s\n\t\t[-%s %s] ' % (helpMsg, option, valueName)
-        #
-        # Print the long options which take no arguments.
-        #
-        for option in longOptionNoArgs:
-            helpMsg = '%s\n\t\t[--%s] ' % (helpMsg, option)
-        #
-        # Print the long options which take arguments.
-        #
-        for option in longOptionArgs:
-            methodName = self.methodNameFromOption(option)
-            method = self.methodReferenceFromName(methodName)
-            valueName = method.func_code.co_varnames[1]
-            helpMsg = '%s\n\t\t[--%s=%s] ' % (helpMsg, option, valueName)
-        #
-        # Print the argument description
-        #
-        if self.shortArgumentsDescription:
-            helpMsg = '%s\n\n\t\t%s' % (helpMsg, self.shortArgumentsDescription)
+        # A couple of newlines
         #
         helpMsg = '%s\n\n' % helpMsg
         return helpMsg
@@ -410,7 +490,18 @@ class CommandLineApp:
 
         emit_blank = 1
         for line in docStringLines[1:]:
-            line = string.strip(line)
+
+            #
+            # Correct indention
+            #
+            #line = string.strip(line)
+            if line and line[:8] == (' ' * 8):
+                line = line[8:]
+            elif line and line[:4] == (' ' * 4):
+                line = line[4:]
+            elif line and line[0] == '\t':
+                line = line[1:]
+                
             if not line and emit_blank:
                 emit_blank = 0
             elif line:
@@ -569,7 +660,7 @@ class CommandLineApp:
         # a description of what it is for.
         #
         print ''
-        print '%s\n' % sys.argv[0]
+        print '%s\n' % self._app_name
         if self.__class__.__doc__:
             print ''
             for line in string.split(self.__class__.__doc__, '\n'):
@@ -609,7 +700,7 @@ class CommandLineApp:
         self.showSimpleSyntaxHelp()
         return
 
-    def statusMessage(self, msg='', verboseLevel=1, error=None):
+    def statusMessage(self, msg='', verboseLevel=1, error=None, newline=1):
         """Print a status message to output.
         
         Arguments
@@ -622,6 +713,8 @@ class CommandLineApp:
                               
             error=None        -- If true, the message is considered an error and
                               printed as such.
+
+            newline=1         -- If true, print a newline after the message.
                               
         """
         if self.verboseLevel >= verboseLevel:
@@ -629,8 +722,13 @@ class CommandLineApp:
                 output = sys.stderr
             else:
                 output = sys.stdout
-            output.write('%s\n' % msg)
-            output.flush()
+            #output.write('%s: %s\n' % (self._app_name, msg))
+            output.write(str(msg))
+            if newline:
+                output.write('\n')
+            # some log mechanisms don't have a flush method
+            if hasattr(output, 'flush'):
+                output.flush()
         return
 
     def debugMethodEntry(self, methodName, debugLevel=3, **nargs):
@@ -656,74 +754,299 @@ class CommandLineApp:
         'Turn on quiet mode.'
         self.verboseLevel = 0
 
+if __name__ == '__main__':
+    unittest.main()
         
-class TestApp(CommandLineApp):
-    """    This is a simple test application.
+    class TestApp(CommandLineApp):
+        """    This is a simple test application.
 
-    It defines several optionHandler methods to handle
-    some example options.  One option of each type is
-    handled by an example.
+        It defines several optionHandler methods to handle
+        some example options.  One option of each type is
+        handled by an example.
 
-    The __doc__ string for the class should contain
-    the info about how to use the application. """
+        The __doc__ string for the class should contain
+        the info about how to use the application. """
 
-    examplesDescription = \
-"""    a description of how to use the program 
-    in various ways goes here.
-"""                
+        examplesDescription = \
+    """    a description of how to use the program 
+        in various ways goes here.
+    """                
 
-    argumentsDescription = \
-"""    a description of other arguments goes here
-"""
+        argumentsDescription = \
+    """    a description of other arguments goes here
+    """
 
-    defaultLongFormOption='<default value>'
+        defaultLongFormOption='<default value>'
 
-    def optionHandler_a(self, optValue):
-        'get a value for a'
-        print '%s: handling a: %s' % (self.__class__.__name__, optValue)
+        force_exit = 0
 
-    def optionHandler_b(self):
-        'toggle the value of b'
-        print '%s: handling b' % (self.__class__.__name__,)
+        def optionHandler_a(self, optValue):
+            'get a value for a'
+            print '%s: handling a: %s' % (self.__class__.__name__, optValue)
 
-    def optionHandler_long_form_option(self):
-        'boolean option'
-        print '%s: handling long-form-option' % (self.__class__.__name__,)
+        def optionHandler_b(self):
+            'toggle the value of b'
+            print '%s: handling b' % (self.__class__.__name__,)
 
-    def optionHandler_long_form_with_value(self, optValue):
-        """First line of help.
-            get a value for long form option
+        def optionHandler_long_form_option(self):
+            'boolean option'
+            print '%s: handling long-form-option' % (self.__class__.__name__,)
 
-            Default:<manually inserted>"""
-        print '%s: handling long-form-with-value: %s' % (self.__class__.__name__,
-                                 optValue)
+        def optionHandler_long_form_with_value(self, optValue):
+            """First line of help.
+                get a value for long form option
 
-    def main(self, *args):
-        'main loop'
-        print '%s: LEFT OVERS: ' % (self.__class__.__name__,), self.remainingOpts
+                Default:<manually inserted>"""
+            print '%s: handling long-form-with-value: %s' % (self.__class__.__name__,
+                                     optValue)
 
-        
-class SubClassTestApp(TestApp):
-    'new doc string'
+        def optionHandler_report(self, reportName):
+            """Test options with same prefix.
+            """
+            self.statusMessage('REPORT: %s' % reportName)
+            return
+
+        def optionHandler_report_group(self, reportGroupName):
+            """Test options with same prefix.
+            """
+            self.statusMessage('REPORT_GROUP: %s' % reportGroupName)
+            return
+
+        def optionHandler_reportgroup(self, reportGroupName):
+            """Test options with same prefix.
+            """
+            self.statusMessage('REPORTGROUP: %s' % reportGroupName)
+            return
+
+        def main(self, *args):
+            'main loop'
+            print '%s: LEFT OVERS: ' % (self.__class__.__name__,), self.remainingOpts
+
+
+    class SubClassTestApp(TestApp):
+        'new doc string'
+
+        def optionHandler_a(self, newA):
+            'Doc string for SubClassTestApp'
+            print 'New A:', newA
+            TestApp.optionHandler_a(self, newA)
+
+        def optionHandler_z(self):
+            'Doc string for SubClassTestApp'
+            print '%s -z' % self.__class__.__name__
+
+        def optionHandler_option_list(self, optionList):
+            'Doc string for SubClassTestApp'
+            if type(optionList) == type([]):
+                print '%s -z list: ' % self.__class__.__name__, optionList
+            else:
+                print '%s -z string: %s' % (self.__class__.__name__, optionList)
+
+        def main(self, *args):
+            apply(TestApp.main, (self,) + args)
+            raise 'not an error'
+
+
+    class CLATestCase(unittest.TestCase):
+
+        def runAndCatchOutput(self, args):
+            output_text = ''
+
+            try:
+                old_stdout = sys.stdout
+                old_stderr = sys.stderr
+                from cStringIO import StringIO
+                sys.stdout = sys.stderr = StringIO()
+                SubClassTestApp( args ).run()
+
+            except SubClassTestApp.HelpRequested:
+                output_text = sys.stdout.getvalue()
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+
+            else:
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+                self.fail('Help was not requested.')
+
+            return output_text
+
+        def testShortHelpGeneration(self):
+            help_text = self.runAndCatchOutput(['-h'])
+
+            expected_help_text = """
+    SubClassTestApp
+
+    ./CommandLineApp.py [<options>] 
+
+            -V
+            -a newA
+            -b
+            --long-form-option
+            --long-form-with-value=optValue
+            --option-list=optionList
+            -q
+            --report=reportName
+            --report-group=reportGroupName
+            --reportgroup=reportGroupName
+            -z
+
+
+
+        For more details, use --help.
+
+    """
+            assert help_text == expected_help_text, \
+                   'Unexpected help text "%s" does not match "%s"' % (help_text, expected_help_text)
+            return
+
+        def testLongHelpGeneratoion(self):
+            help_text = self.runAndCatchOutput(['--help'])
+
+            expected_help_text = """
+    ./CommandLineApp.py
+
+
+        new doc string
+
+
+    SYNTAX:
+
+        ./CommandLineApp.py [<options>] 
+
+            -V
+            -a newA
+            -b
+            --long-form-option
+            --long-form-with-value=optValue
+            --option-list=optionList
+            -q
+            --report=reportName
+            --report-group=reportGroupName
+            --reportgroup=reportGroupName
+            -z
+
+
+    OPTIONS:
+
+        -h             Displays abbreviated help message.
+
+        --help         Displays complete usage information.
+
+        -V             Increment the verbose level.
+                       Higher levels are more verbose.
+                       The default is 1.
+
+
+        -a newA        Doc string for SubClassTestApp
+
+
+        -b             toggle the value of b
+
+
+        --long-form-option
+                       boolean option
+
+
+        --long-form-with-value=optValue
+                       First line of help.
+                       get a value for long form option
+
+                       Default:<manually inserted>
+
+
+        --option-list=optionList
+                       Doc string for SubClassTestApp
+
+
+        -q             Turn on quiet mode.
+
+
+        --report=reportName
+                       Test options with same prefix.
+
+
+        --report-group=reportGroupName
+                       Test options with same prefix.
+
+
+        --reportgroup=reportGroupName
+                       Test options with same prefix.
+
+
+        -z             Doc string for SubClassTestApp
+
+
+    ARGUMENTS:
+
+        a description of other arguments goes here
+
+
+
+    EXAMPLES:
+
+        a description of how to use the program 
+        in various ways goes here.
+
+
+    """
+            assert help_text == expected_help_text, 'Unexpected help text "%s"' % help_text
+            return
+
+        def testOptionList(self):
+
+            class CLAOptionListTest(CommandLineApp):
+                force_exit = 0
+                expected_options = ['a', 'b', 'c']
+                def optionHandler_t(self, options):
+                    "Expects multiple arguments."
+                    assert options == self.expected_options, \
+                           "Option value does not match expected (%s)" % str(options)
+                optionHandler_option_list = optionHandler_t
+
+            CLAOptionListTest( [ '-t', 'a,b,c' ] ).run()
+            CLAOptionListTest( [ '--option-list', 'a,b,c' ] ).run()
+            CLAOptionListTest( [ '--option-list=a,b,c' ] ).run()
+            return
+
+        def testLongOptions(self):
+            class CLALongOptionTest(CommandLineApp):
+                force_exit = 0
+                def optionHandler_test(self):
+                    "Expects no arguments."
+                    return
+                def optionHandler_test_args(self, args):
+                    "Expects some arguments"
+                    return
+
+            CLALongOptionTest( [ '--test' ] ).run()
+            CLALongOptionTest( [ '--test-args', 'foo' ] ).run()
+            CLALongOptionTest( [ '--test-args=foo' ] ).run()
+
+            CLALongOptionTest( [ '--test_args', 'foo' ] ).run()
+            CLALongOptionTest( [ '--test_args=foo' ] ).run()
+
+            return
+
+        def testArgsToMain(self):
+            class CLALongOptionTest(CommandLineApp):
+                force_exit = 0
+                expected_args = ( 'a', 'b', 'c' )
+                def optionHandler_t(self):
+                    pass
+                def main(self, *args):
+                    assert args == self.expected_args, \
+                           'Got %s instead of expected values.' % str(args)
+
+            CLALongOptionTest( [ 'a', 'b', 'c' ] ).run()
+            CLALongOptionTest( [ '-t', 'a', 'b', 'c' ] ).run()
+            CLALongOptionTest( [ '-t', '--', 'a', 'b', 'c' ] ).run()
+            CLALongOptionTest( [ '--', 'a', 'b', 'c' ] ).run()
+            new_test = CLALongOptionTest( [ '--', '-t', 'a', 'b', 'c' ] )
+            new_test.expected_args = ('-t',) + new_test.expected_args
+            new_test.run()
+            return
+
+
+    #SubClassTestApp().run()
     
-    def optionHandler_a(self, newA):
-        'Doc string for SubClassTestApp'
-        print 'New A:', newA
-        TestApp.optionHandler_a(self, newA)
-    
-    def optionHandler_z(self):
-        'Doc string for SubClassTestApp'
-        print '%s -z' % self.__class__.__name__
-        
-    def optionHandler_option_list(self, optionList):
-        'Doc string for SubClassTestApp'
-        if type(optionList) == type([]):
-            print '%s -z list: ' % self.__class__.__name__, optionList
-        else:
-            print '%s -z string: %s' % (self.__class__.__name__, optionList)
-        
-    def main(self, *args):
-        apply(TestApp.main, (self,) + args)
-        raise 'not an error'
-
-
