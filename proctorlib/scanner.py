@@ -430,7 +430,7 @@ class ModuleScanner:
                    arg=arg, dirname=dirname, filenames=filenames,
                    outputLevel=self.TRACE_LEVEL)
         if self.verbose_level:
-            print 'Scanning: %s' % dirname
+            print 'Scanning: %s' % (dirname or '.')
             sys.stdout.flush()
         #
         # Create a local copy of the names to skip, then add

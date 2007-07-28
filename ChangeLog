@@ -1,3 +1,12 @@
+2007-07-28  Doug Hellmann  <doug.hellmann@gmail.com>
+
+	* proctorlib/cui.py (proctorbatch.main): Construct the module tree
+	separately for each run mode case, so we do it at the right time
+	and only once.
+
+	* proctorlib/scanner.py (ModuleScanner.walkCallback): If dirname
+	is empty, show '.' instead.
+
 2007-07-26  Doug Hellmann  <doug.hellmann@gmail.com>
 
 	* proctorlib/CommandLineApp.py (CommandLineApp): Convert string

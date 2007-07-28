@@ -247,13 +247,12 @@ class proctorbatch(proctorlib.CommandLineApp):
         #
         sys.argv = [ sys.argv[0] ]
 
-        module_tree = self.getModuleTree(args)
-
         #
         # If they asked for a list of the tests, print that
         # first.
         #
         if self.list_mode:
+            module_tree = self.getModuleTree(args)
             success = self.listTests(module_tree)
 
         #
@@ -261,6 +260,7 @@ class proctorbatch(proctorlib.CommandLineApp):
         # print that here.
         #
         elif self.list_categories_mode:
+            module_tree = self.getModuleTree(args)
             success = self.listCategories(module_tree)
 
         #
