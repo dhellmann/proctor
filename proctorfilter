@@ -39,7 +39,7 @@ import sys
 # Import Local modules
 #
 import proctorlib
-from proctorlib.parser import ResultFactory, TestResult
+from proctorlib.result import ResultFactory, TestResult
 
 #
 # Module
