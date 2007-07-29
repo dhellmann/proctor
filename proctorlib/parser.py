@@ -32,7 +32,6 @@ __module_id__ = "$Id$"
 #
 # Import system modules
 #
-import fileinput
 
 #
 # Import Local modules

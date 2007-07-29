@@ -32,13 +32,14 @@ __module_id__ = "$Id: copyright.el 633 2007-05-27 14:15:19Z dhellmann $"
 #
 # Import system modules
 #
+import fileinput
 import sys
 
 #
 # Import Local modules
 #
+import proctorlib
 from proctorlib.parser import ResultFactory, TestResult
-
 
 #
 # Module
