@@ -64,6 +64,10 @@ class TestResult:
     """Result of a single test, parsed from the output of a test run.
     """
 
+    OK = 'ok'
+    ERROR = 'ERROR'
+    FAIL = 'FAIL'
+
     def __init__(self, name, output, result):
         self.name = name
         self.output = output
@@ -73,7 +77,7 @@ class TestResult:
 
     def passed(self):
         "Return boolean indicating whether or not the test passed."
-        return (self.status == 'ok')
+        return (self.status == self.OK)
 
     def __str__(self):
         return '%s: %s' % (self.name, self.status)
@@ -93,8 +97,15 @@ class ResultFactory:
         self.callback = callback
         return
 
-    def feedLine(self, line):
+    def feed(self, text):
         "Add one line of input to the parser."
+        lines = text.split('\n')
+        for line in lines:
+            if line:
+                self.feedLine(line)
+        return
+
+    def feedLine(self, line):
         line = line.rstrip()
 
         if line.startswith(proctorlib.runner.ProctorParsableTestResult.PREFIX):
@@ -118,7 +129,3 @@ class ResultFactory:
         else:
             self.current_result.setdefault(self.section_stack.top(), []).append(line)
         return
-        
-
-    
-

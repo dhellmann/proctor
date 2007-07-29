@@ -58,17 +58,17 @@ class proctorfilter(proctorlib.CommandLineApp):
 
     def optionHandler_ok(self):
         "Include tests which passed."
-        self.desired_results.add('ok')
+        self.desired_results.add(TestResult.OK)
         return
 
     def optionHandler_error(self):
         "Include tests which had an error."
-        self.desired_results.add('ERROR')
+        self.desired_results.add(TestResult.ERROR)
         return
 
     def optionHandler_fail(self):
         "Include tests which failed."
-        self.desired_results.add('FAIL')
+        self.desired_results.add(TestResult.FAIL)
         return
     
     shortArgumentsDescription = "[<log file name> ...]"
@@ -79,10 +79,14 @@ class proctorfilter(proctorlib.CommandLineApp):
         return
 
     def main(self, *args):
+        if not self.desired_results:
+            self.optionHandler_error()
+            self.optionHandler_fail()
+
         parser = ResultFactory(self.showTestResult)
 
         for line in fileinput.input(args):
-            parser.feedLine(line)
+            parser.feed(line)
                 
         return 0
 
