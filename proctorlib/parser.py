@@ -80,12 +80,17 @@ class TestResult:
 
 class ResultFactory:
     """Parse a sequence of lines to create TestResult instances.
+
+    The callback argument must be a callable object which accepts a
+    single positional argument.  Each time a new test result is
+    completely parsed, the callback will be invoked with a TestResult
+    instance containing the information about that test.
     """
 
-    def __init__(self):
-        self.results = []
+    def __init__(self, callback):
         self.current_result = {}
         self.section_stack = SectionStack()
+        self.callback = callback
         return
 
     def feedLine(self, line):
@@ -106,16 +111,13 @@ class ResultFactory:
                     output = '\n'.join(self.current_result['test'])
                     result = '\n'.join(self.current_result['results'])
                     new_result = TestResult(name, output, result)
-                    self.results.append(new_result)
+                    self.callback(new_result)
                     self.current_result = {}
             else:
                 raise ValueError('Unrecognized action "%s"' % action)
         else:
             self.current_result.setdefault(self.section_stack.top(), []).append(line)
         return
-
-    def getResults(self):
-        return self.results
         
 
     
