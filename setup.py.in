@@ -79,6 +79,6 @@ setup (
     
     package_dir = { '': '.' },
     
-    scripts = ['proctorbatch'],
+    scripts = ['proctorbatch', 'proctorfilter', 'coveragemerge'],
     )
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 #
-# $Id$
-#
 # Copyright 2007 Doug Hellmann.
 #
 #
@@ -25,47 +23,29 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""Preferences for the GUI.
+"""Filter proctorbatch --parsable output to show tests which did not pass.
 
 """
 
-__module_id__ = '$Id$'
+__module_id__ = "$Id: copyright.el 633 2007-05-27 14:15:19Z dhellmann $"
 
 #
 # Import system modules
 #
-
+import sys
 
 #
 # Import Local modules
 #
-import PmwContribD
+from proctorlib.filter_results import proctorfilter
+
 
 #
 # Module
 #
-
-class ProctorPrefs(PmwContribD.UserPrefs):
-
-    order = (
-        'spacing',
-        'width',
-        'height',
-        'background',
-        'pending',
-        'running',
-        'success',
-        'failure',
-        'error',
-        )
-    allowedValues = {
-        'spacing'    : ('integer', 5, 'Space between test indicators'),
-        'width'      : ('integer', 20, 'Width of test indicators'),
-        'height'     : ('integer', 20, 'Height of test indicators'),
-        'background' : ('color', 'black', 'Background color'),
-        'pending'    : ('color', 'grey',  'Test pending color'),
-        'running'    : ('color', 'cyan',  'Test running color'),
-        'success'    : ('color', 'green', 'Success indicator color'),
-        'failure'    : ('color', 'red', 'Failure indicator color'),
-        'error'      : ('color', 'yellow', 'Error indicator color'),
-        }
+try:
+    success = proctorfilter().run()
+except proctorfilter.HelpRequested:
+    pass
+else:
+    sys.exit( not success )

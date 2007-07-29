@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright 2001 Doug Hellmann.
+# Copyright 2007 Doug Hellmann.
 #
 #
 #                         All Rights Reserved

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# COPYRIGHT
+# Copyright 2007 Doug Hellmann.
 #
 #   Permission to use, copy, modify, and distribute this software and
 #   its documentation for any purpose and without fee is hereby
@@ -11,8 +11,6 @@
 #   distribution of the software without specific, written prior
 #   permission.
 # 
-# DISCLAIMER
-#
 #   DOUG HELLMANN DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
 #   INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
 #   NO EVENT SHALL DOUG HELLMANN BE LIABLE FOR ANY SPECIAL, INDIRECT OR

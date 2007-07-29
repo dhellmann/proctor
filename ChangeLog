@@ -1,5 +1,12 @@
 2007-07-28  Doug Hellmann  <doug.hellmann@gmail.com>
 
+	* proctorfilter: New command line tool to parse the output
+	produced by the --parsable option and print the names of tests
+	which do not pass.
+
+	* proctorlib/runner.py (ProctorParsableTestResult._outputSeparator):
+	Do not include a blank line after separator lines.
+
 	* proctorlib/cui.py (proctorbatch.main): Construct the module tree
 	separately for each run mode case, so we do it at the right time
 	and only once.

@@ -1,7 +1,7 @@
 #
 # $Id$
 #
-# Copyright 2003 Racemi, Inc.
+# Copyright 2007 Doug Hellmann.
 #
 
 """Background test runner.
