@@ -15,6 +15,7 @@ register: setup.py
 
 %: %.in
 	cat $< | sed 's/VERSION/$(VERSION)/g' > $@
+	chmod -w $@
 
 tags:
 	find . -name '*.py' | etags -l auto --regex='/[ \t]*\def[ \t]+\([^ :(\t]+\)/\1/' -

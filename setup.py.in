@@ -80,5 +80,7 @@ setup (
     package_dir = { '': '.' },
     
     scripts = ['proctorbatch', 'proctorfilter', 'coveragemerge'],
+
+    requires=['coverage'],
     )
 

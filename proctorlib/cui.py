@@ -46,7 +46,7 @@ import unittest
 # Import Local modules
 #
 import proctorlib
-import proctorlib.coverage
+import coverage
 from proctorlib.trace import trace
 
 #
@@ -69,7 +69,7 @@ class proctorbatch(proctorlib.CommandLineApp):
     list_categories_mode = False
     run_mode = True
     parsable_mode = False
-    coverage_filename = proctorlib.coverage.coverage.cache_default
+    coverage_filename = coverage.coverage.cache_default
     coverage = True
     coverage_exclude_patterns = []
     interleaved = False
@@ -281,16 +281,16 @@ class proctorbatch(proctorlib.CommandLineApp):
                 #
                 # Clean up in case we have previous coverage data
                 #
-                proctorlib.coverage.erase()
+                coverage.erase()
                 #
                 # Add exclude patterns
                 #
                 for pattern in self.coverage_exclude_patterns:
-                    proctorlib.coverage.exclude(pattern)
+                    coverage.exclude(pattern)
                 #
                 # Start code coverage counter
                 #
-                proctorlib.coverage.start()
+                coverage.start()
                 
             #
             # Get the module tree.  This needs to be done *after*
@@ -308,8 +308,8 @@ class proctorbatch(proctorlib.CommandLineApp):
                 #
                 # Stop coverage counter and save its results
                 #
-                proctorlib.coverage.stop()
-                proctorlib.coverage.the_coverage.save()
+                coverage.stop()
+                coverage.the_coverage.save()
                 
             #
             # Report our success/failure
