@@ -81,7 +81,9 @@ setup (
     
     scripts = ['proctorbatch', 'proctorfilter', 'coveragemerge'],
 
-    provides=['Proctor VERSION'],
+    provides=['Proctor',
+              'proctorlib',
+              ],
     #requires=['coverage'],
     )
 

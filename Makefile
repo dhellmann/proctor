@@ -14,6 +14,7 @@ register: setup.py
 	python setup.py register
 
 %: %.in
+	rm -f $@
 	cat $< | sed 's/VERSION/$(VERSION)/g' > $@
 	chmod -w $@
 
