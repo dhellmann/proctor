@@ -68,11 +68,15 @@ class TestResult:
         self.name = name
         self.output = output
         self.result = result
+        self.status = result.split(' ')[0]
         return
 
     def passed(self):
         "Return boolean indicating whether or not the test passed."
-        return self.result.startswith('ok')
+        return (self.status == 'ok')
+
+    def __str__(self):
+        return '%s: %s' % (self.name, self.status)
 
 class ResultFactory:
     """Parse a sequence of lines to create TestResult instances.

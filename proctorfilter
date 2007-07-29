@@ -51,6 +51,25 @@ class proctorfilter(proctorlib.CommandLineApp):
     --parsable option and prints a list of the tests which did not
     pass.
     """
+
+    def appInit(self):
+        self.desired_results = set()
+        return
+
+    def optionHandler_ok(self):
+        "Include tests which passed."
+        self.desired_results.add('ok')
+        return
+
+    def optionHandler_error(self):
+        "Include tests which had an error."
+        self.desired_results.add('ERROR')
+        return
+
+    def optionHandler_fail(self):
+        "Include tests which failed."
+        self.desired_results.add('FAIL')
+        return
     
     shortArgumentsDescription = "[<log file name> ...]"
 
@@ -60,9 +79,9 @@ class proctorfilter(proctorlib.CommandLineApp):
         for line in fileinput.input(args):
             parser.feedLine(line)
 
-        for result in parser.getResults():
-            if not result.passed():
-                print result.result
+        for test_result in parser.getResults():
+            if test_result.status in self.desired_results:
+                print test_result
                 
         return 0
 
