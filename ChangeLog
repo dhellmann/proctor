@@ -1,3 +1,8 @@
+2007-07-29  Doug Hellmann  <doug.hellmann@gmail.com>
+
+	* proctorlib/runner.py (ProctorTestResult._showGarbage): Write
+	garbage collecting info to stdout instead of stderr.
+
 2007-07-28  Doug Hellmann  <doug.hellmann@gmail.com>
 
 	* proctorfilter: New command line tool to parse the output

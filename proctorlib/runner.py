@@ -130,7 +130,7 @@ class ProctorTestResult(unittest.TestResult):
         unittest.TestResult.startTest(self, test)
 
         desc = test.id()
-        progress_line = '%3d/%3d %s ...' % (self.num_tests_run,
+        progress_line = '%3d/%3d %s ...' % (self.num_tests_run + 1,
                                             self.num_tests,
                                             desc,
                                             )
@@ -152,7 +152,7 @@ class ProctorTestResult(unittest.TestResult):
             #
             flags = gc.get_debug()
             th = gc.get_threshold()
-            #sys.stderr.write("GC: Thresholds = %s\n" % str(th))
+            #sys.stdout.write("GC: Thresholds = %s\n" % str(th))
             
             try:
                 #
@@ -161,7 +161,7 @@ class ProctorTestResult(unittest.TestResult):
                 gc.set_debug(gc.DEBUG_LEAK)
                 gc.set_threshold(1, 1, 1)
                 # force collection
-                sys.stderr.write("GC: Collecting...\n")
+                sys.stdout.write("GC: Collecting...\n")
                 for i in range(6):
                     gc.collect()
 
@@ -177,9 +177,9 @@ class ProctorTestResult(unittest.TestResult):
             # Report on current garbage
             #
             if not garbage:
-                sys.stderr.write('GC: no garbage\n')
+                sys.stdout.write('GC: no garbage\n')
             else:
-                sys.stderr.write("GC: Garbage objects:\n")
+                sys.stdout.write("GC: Garbage objects:\n")
                 for x in garbage:
                     for c in [ scanner.ModuleTree,
                                ]:
@@ -189,8 +189,8 @@ class ProctorTestResult(unittest.TestResult):
 
                     s = str(x)
                     #if len(s) > 80: s = s[:80]
-                    sys.stderr.write(str(type(x)))
-                    sys.stderr.write("\n  %s\n" % s)
+                    sys.stdout.write(str(type(x)))
+                    sys.stdout.write("\n  %s\n" % s)
                 
             # collect again without DEBUG_LEAK
             gc.collect()

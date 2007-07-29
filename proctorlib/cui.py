@@ -41,12 +41,16 @@ import time
 import traceback
 import unittest
 
+try:
+    import coverage
+except Exception, err:
+    #print >>sys.stderr, 'WARNING: No coverage:', str(err)
+    coverage = None
 
 #
 # Import Local modules
 #
 import proctorlib
-import proctorlib.coverage
 from proctorlib.trace import trace
 
 #
@@ -69,8 +73,11 @@ class proctorbatch(proctorlib.CommandLineApp):
     list_categories_mode = False
     run_mode = True
     parsable_mode = False
-    coverage_filename = proctorlib.coverage.coverage.cache_default
-    coverage = True
+    if coverage:
+        coverage_filename = coverage.coverage.cache_default
+    else:
+        coverage_filename = None
+    code_coverage = True
     coverage_exclude_patterns = []
     interleaved = False
     category = 'All'
@@ -130,7 +137,7 @@ class proctorbatch(proctorlib.CommandLineApp):
     def optionHandler_no_coverage(self):
         """Disable coverage analysis.
         """
-        self.coverage = False
+        self.code_coverage = False
         return
 
     def optionHandler_coverage_exclude(self, pattern):
@@ -268,29 +275,29 @@ class proctorbatch(proctorlib.CommandLineApp):
         # last.
         #
         elif self.run_mode:
-            
-            #
-            # Possibly override the coverage filename
-            #
-            if self.coverage_filename:
-                self.statusMessage('Writing coverage output to %s' % self.coverage_filename)
-                import os
-                os.environ['COVERAGE_FILE'] = self.coverage_filename
                 
-            if self.coverage:
+            if coverage and self.code_coverage:
+                #
+                # Possibly override the coverage filename
+                #
+                if self.coverage_filename:
+                    self.statusMessage('Writing coverage output to %s' % self.coverage_filename)
+                    import os
+                    os.environ['COVERAGE_FILE'] = self.coverage_filename
+
                 #
                 # Clean up in case we have previous coverage data
                 #
-                proctorlib.coverage.erase()
+                coverage.erase()
                 #
                 # Add exclude patterns
                 #
                 for pattern in self.coverage_exclude_patterns:
-                    proctorlib.coverage.exclude(pattern)
+                    coverage.exclude(pattern)
                 #
                 # Start code coverage counter
                 #
-                proctorlib.coverage.start()
+                coverage.start()
                 
             #
             # Get the module tree.  This needs to be done *after*
@@ -304,12 +311,12 @@ class proctorbatch(proctorlib.CommandLineApp):
             #
             result = self.runTests(module_tree)
 
-            if self.coverage:
+            if coverage and self.code_coverage:
                 #
                 # Stop coverage counter and save its results
                 #
-                proctorlib.coverage.stop()
-                proctorlib.coverage.the_coverage.save()
+                coverage.stop()
+                coverage.the_coverage.save()
                 
             #
             # Report our success/failure

@@ -88,6 +88,6 @@ setup (
     provides=['Proctor',
               'proctorlib',
               ],
-    #requires=['coverage'],
+    requires=['coverage (>=2.77)'],
     )
 
