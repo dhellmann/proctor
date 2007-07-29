@@ -60,37 +60,60 @@ class SectionStack:
 
     def pop(self):
         return self.stack.pop()
+
+class TestResult:
+    """Result of a single test, parsed from the output of a test run.
+    """
+
+    def __init__(self, name, output, result):
+        self.name = name
+        self.output = output
+        self.result = result
+        return
+
+    def passed(self):
+        "Return boolean indicating whether or not the test passed."
+        return self.result.startswith('ok')
+
+class ResultFactory:
+    """Parse a sequence of lines to create TestResult instances.
+    """
+
+    def __init__(self):
+        self.results = []
+        self.current_result = {}
+        self.section_stack = SectionStack()
+        return
+
+    def feedLine(self, line):
+        "Add one line of input to the parser."
+        line = line.rstrip()
+
+        if line.startswith(proctorlib.runner.ProctorParsableTestResult.PREFIX):
+            parts = line.split(' ')
+            action = parts[1]
+            section = parts[2]
+            if action == 'Start':
+                self.section_stack.push(section)
+            elif action == 'End' and self.section_stack.top() == section:
+                ended = self.section_stack.pop()
+                if ended == 'test':
+                    # We have everything about the test
+                    name = self.current_result['test'][0] # first line of test body is name
+                    output = '\n'.join(self.current_result['test'])
+                    result = '\n'.join(self.current_result['results'])
+                    new_result = TestResult(name, output, result)
+                    self.results.append(new_result)
+                    self.current_result = {}
+            else:
+                raise ValueError('Unrecognized action "%s"' % action)
+        else:
+            self.current_result.setdefault(self.section_stack.top(), []).append(line)
+        return
+
+    def getResults(self):
+        return self.results
         
-
-class proctorfilter(proctorlib.CommandLineApp):
-    """
-    proctorfilter reads output created by proctorbatch with the
-    --parsable option and prints a list of the tests which did not
-    pass.
-    """
-    
-    shortArgumentsDescription = "[<log file name> ...]"
-
-    def main(self, *args):
-        section_stack = SectionStack()
-
-        for line in fileinput.input(args):
-            line = line.strip()
-            if line.startswith(proctorlib.runner.ProctorParsableTestResult.PREFIX):
-                parts = line.split(' ')
-                action = parts[1]
-                section = parts[2]
-                if action == 'Start':
-                    section_stack.push(section)
-                elif action == 'End' and section_stack.top() == section:
-                    section_stack.pop()
-                else:
-                    raise ValueError('Unrecognized action "%s"' % action)
-            elif section_stack.top() == 'results':
-                if not line.startswith('ok'):
-                    print line
-                
-        return 0
 
     
 

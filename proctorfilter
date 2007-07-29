@@ -37,15 +37,38 @@ import sys
 #
 # Import Local modules
 #
-from proctorlib.filter_results import proctorfilter
+from proctorlib.parser import ResultFactory, TestResult
 
 
 #
 # Module
 #
-try:
-    success = proctorfilter().run()
-except proctorfilter.HelpRequested:
-    pass
-else:
-    sys.exit( not success )
+
+class proctorfilter(proctorlib.CommandLineApp):
+    """
+    proctorfilter reads output created by proctorbatch with the
+    --parsable option and prints a list of the tests which did not
+    pass.
+    """
+    
+    shortArgumentsDescription = "[<log file name> ...]"
+
+    def main(self, *args):
+        parser = ResultFactory()
+
+        for line in fileinput.input(args):
+            parser.feedLine(line)
+
+        for result in parser.getResults():
+            if not result.passed():
+                print result.result
+                
+        return 0
+
+if __name__ == '__main__':
+    try:
+        success = proctorfilter().run()
+    except proctorfilter.HelpRequested:
+        pass
+    else:
+        sys.exit( not success )
