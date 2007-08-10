@@ -3,6 +3,7 @@
 	* proctorfilter (proctorfilter.showTestResult): Show the test
 	result at normal verbosity level, and the full output at
 	verbose=2.
+	(proctorfilter.main): Add --sumarize option.
 
 2007-07-29  Doug Hellmann  <doug.hellmann@gmail.com>
 

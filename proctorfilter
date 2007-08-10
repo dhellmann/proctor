@@ -54,6 +54,10 @@ class proctorfilter(proctorlib.CommandLineApp):
 
     def appInit(self):
         self.desired_results = set()
+        self.counts = { TestResult.OK    : 0,
+                        TestResult.ERROR : 0,
+                        TestResult.FAIL  : 0,
+                        }
         return
 
     def optionHandler_ok(self):
@@ -70,6 +74,12 @@ class proctorfilter(proctorlib.CommandLineApp):
         "Include tests which failed."
         self.desired_results.add(TestResult.FAIL)
         return
+
+    summarize = False
+    def optionHandler_summarize(self):
+        "Print a summary with test counts."
+        self.summarize = True
+        return
     
     shortArgumentsDescription = "[<log file name> ...]"
 
@@ -79,6 +89,7 @@ class proctorfilter(proctorlib.CommandLineApp):
             # Do not repeat the name from the output
             test_output = '\n'.join(test_result.output.split('\n')[1:]) + '\n'
             self.statusMessage(test_output, 2)
+        self.counts[test_result.status] = self.counts[test_result.status] + 1
         return
 
     def main(self, *args):
@@ -90,6 +101,21 @@ class proctorfilter(proctorlib.CommandLineApp):
 
         for line in fileinput.input(args):
             parser.feed(line)
+
+        if self.summarize:
+            print '-------------------------'
+            total = sum(self.counts.values())
+            print ' Tests : %6d' % total
+            for label, status in [ ('Pass', TestResult.OK), 
+                                   ('Error', TestResult.ERROR),
+                                   ('Fail', TestResult.FAIL),
+                                   ]:
+                num = self.counts[status]
+                if num:
+                    percent = (num * 100.0) / total
+                    print ' %-5s : %6d  (%% %3d)' % (label, num, percent)
+                else:
+                    print ' %-5s : %6d' % (label, num)
                 
         return 0
 
