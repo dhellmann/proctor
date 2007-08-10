@@ -75,7 +75,10 @@ class proctorfilter(proctorlib.CommandLineApp):
 
     def showTestResult(self, test_result):
         if test_result.status in self.desired_results:
-            print test_result
+            self.statusMessage(test_result)
+            # Do not repeat the name from the output
+            test_output = '\n'.join(test_result.output.split('\n')[1:]) + '\n'
+            self.statusMessage(test_output, 2)
         return
 
     def main(self, *args):

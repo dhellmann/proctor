@@ -1,3 +1,9 @@
+2007-08-10  Doug Hellmann  <doug.hellmann@gmail.com>
+
+	* proctorfilter (proctorfilter.showTestResult): Show the test
+	result at normal verbosity level, and the full output at
+	verbose=2.
+
 2007-07-29  Doug Hellmann  <doug.hellmann@gmail.com>
 
 	* proctorlib/runner.py (ProctorTestResult._showGarbage): Write
