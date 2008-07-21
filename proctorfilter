@@ -127,9 +127,9 @@ class proctorfilter(proctorlib.CommandLineApp):
         exit_code = 0
         if self.exit_with_status:
             if self.counts.get('Fail', 0):
-                exit_code = 1
-            elif self.counts.get('Error', 0):
-                exit_code = 2
+                exit_code += 1
+            if self.counts.get('Error', 0):
+                exit_code += 2
         return exit_code
 
 
