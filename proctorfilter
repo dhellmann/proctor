@@ -54,10 +54,16 @@ class proctorfilter(proctorlib.CommandLineApp):
 
     def appInit(self):
         self.desired_results = set()
+        self.exit_with_status = False
         self.counts = { TestResult.OK    : 0,
                         TestResult.ERROR : 0,
                         TestResult.FAIL  : 0,
                         }
+        return
+
+    def optionHandler_exit_status(self):
+        "Exit with a failure status if there were errors or test failures."
+        self.exit_with_status = True
         return
 
     def optionHandler_ok(self):
@@ -116,8 +122,16 @@ class proctorfilter(proctorlib.CommandLineApp):
                     print ' %-5s : %6d  (%% %3d)' % (label, num, percent)
                 else:
                     print ' %-5s : %6d' % (label, num)
-                
-        return 0
+
+        # Decide what our exit status is
+        exit_code = 0
+        if self.exit_with_status:
+            if self.counts.get('Fail', 0):
+                exit_code = 1
+            elif self.counts.get('Error', 0):
+                exit_code = 2
+        return exit_code
+
 
 if __name__ == '__main__':
     try:
@@ -125,4 +139,4 @@ if __name__ == '__main__':
     except proctorfilter.HelpRequested:
         pass
     else:
-        sys.exit( not success )
+        sys.exit( success )
