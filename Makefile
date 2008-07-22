@@ -7,14 +7,16 @@ PROJECT=Proctor
 VERSION=$(shell basename $(SVNHOME))
 RELEASE=$(PROJECT)-$(VERSION)
 
-package: setup.py index.html
+package:
+	rm -f setup.py index.html
+	$(MAKE) setup.py index.html
 	python setup.py sdist --force-manifest
+	mv dist/*.gz ~/Desktop/
 
 register: setup.py
 	python setup.py register
 
 %: %.in
-	rm -f $@
 	cat $< | sed 's/VERSION/$(VERSION)/g' > $@
 	chmod -w $@
 
