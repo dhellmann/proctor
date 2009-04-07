@@ -28,14 +28,6 @@ VERSION = '1.5'
 README_FILE = 'README.txt'
 README = path(README_FILE).text()
 
-# Scan the input for package information
-# to grab any data files (text, images, etc.) 
-# associated with sub-packages.
-PACKAGE_DATA = paver.setuputils.find_package_data('proctorlib', 
-                                                  package='proctorlib',
-                                                  only_in_packages=True,
-                                                  )
-
 options(
     setup=Bunch(
         name = PROJECT,
@@ -61,10 +53,10 @@ options(
         platforms = ('Any',),
         keywords = ('test', 'testing', 'unittest'),
 
-        # packages = [ 'proctorlib',
-        #              ],
-        # 
-        # package_dir = { '': '.' },
+        packages = [ 'proctorlib',
+                     ],
+        
+        package_dir = { '': '.' },
 
         scripts = ['proctorbatch', 
                    'proctorfilter', 
@@ -78,10 +70,6 @@ options(
 
         data_files=[('docs', ['README.html']),
                     ],
-
-        # It seems wrong to have to list recursive packages explicitly.
-        packages = sorted(PACKAGE_DATA.keys()),
-        package_data=PACKAGE_DATA,
 
         zip_safe=False,
 

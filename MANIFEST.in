@@ -1,0 +1,4 @@
+include setup.py
+include ChangeLog
+include README.html
+include paver-minilib.zip

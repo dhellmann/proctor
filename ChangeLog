@@ -1,3 +1,7 @@
+2009-04-07  Doug Hellmann  <doug.hellmann@gmail.com>
+
+    * pavement.py: Move from make to Paver for building packages.
+
 2007-08-10  Doug Hellmann  <doug.hellmann@gmail.com>
 
 	* proctorfilter (proctorfilter.showTestResult): Show the test
