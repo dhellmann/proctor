@@ -1,0 +1,8 @@
+syntax: glob
+*.pyc
+docs
+setup.py
+MANIFEST
+Proctor.egg-info
+*.zip
+README.html
